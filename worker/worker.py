@@ -44,7 +44,39 @@ def process_job(blob):
         logging.info(f"▶ Processing job {job_id}...")
         update_status(job_id, "processing")
         blob.download_to_filename(local_path)  # Download audio from GCS
-        text_output = transcribe_audio(local_path)  # Run transcription
+
+        # Define a progress callback that captures job_id
+        def progress_callback(current, total):
+            percent = int((current / total) * 100)
+            status_blob = bucket.blob(f"status/{job_id}.txt")
+            status_content = f"status:processing\nprogress:{percent}"
+            status_blob.upload_from_string(status_content, content_type="text/plain")
+            logging.info(f"Job {job_id} progress: {percent}% ({current}/{total})")
+
+        text_output = transcribe_audio(local_path, progress_callback=progress_callback)  # Run transcription
+
+        # Upload transcription result to GCS
+        result_blob = bucket.blob(f"results/{job_id}/output.txt")
+        result_blob.upload_from_string(text_output, content_type="text/plain")
+        update_status(job_id, "done")
+        logging.info(f"✅ Job {job_id} completed.")
+        blob.delete()  # Remove job file from GCS
+    except Exception as e:
+        logging.error(f"❌ Job {job_id} failed: {e}")
+        update_status(job_id, "failed", str(e))
+    finally:
+        cleanup_file(local_path)  # Always clean up temp file
+
+    """
+    Download audio file, transcribe it, upload result, update status, and clean up.
+    """
+    job_id = blob.name.split("/")[1]
+    local_path = os.path.join(TMP_DIR, f"{job_id}.wav")
+    try:
+        logging.info(f"▶ Processing job {job_id}...")
+        update_status(job_id, "processing")
+        blob.download_to_filename(local_path)  # Download audio from GCS
+        text_output = transcribe_audio(local_path, progress_callback=progress_callback)  # Run transcription
 
         # Upload transcription result to GCS
         result_blob = bucket.blob(f"results/{job_id}/output.txt")
