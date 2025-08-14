@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template, send_file, jsonify
-import os, uuid
+import os, uuid, tempfile
 from gcp_control import start_gpu_vm
 from config import GCS_BUCKET
 from google.cloud import storage
@@ -31,11 +31,11 @@ def index():
             filename = secure_filename(audio_file.filename)
             job_id = str(uuid.uuid4())
             ext = os.path.splitext(filename)[1].lower()
-            local_path = f"/tmp/{job_id}.wav"
+            local_path = os.path.join(tempfile.gettempdir(),f"{job_id}.wav")
 
             # Convert mp3 to wav if needed
             if ext == ".mp3":
-                mp3_path = f"/tmp/{job_id}.mp3"
+                mp3_path = os.path.join(tempfile.gettempdir(),f"{job_id}.mp3")
                 audio_file.save(mp3_path)
                 audio = AudioSegment.from_mp3(mp3_path)
                 audio.export(local_path, format="wav")
@@ -97,7 +97,7 @@ def download(job_id):
     bucket = storage_client.bucket(GCS_BUCKET)
     result_blob = bucket.blob(f"results/{job_id}/output.txt")
     if result_blob.exists():
-        tmp_path = f"/tmp/{job_id}.txt"
+        tmp_path = os.path.join(tempfile.gettempdir(),f"{job_id}.txt")
         result_blob.download_to_filename(tmp_path)
         return send_file(tmp_path, as_attachment=True)
     else:
