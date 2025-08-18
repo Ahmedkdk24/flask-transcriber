@@ -1,0 +1,8 @@
+Flask
+google-api-python-client
+oauth2client
+google-cloud-storage
+pydub
+faster-whisper
+librosa
+soundfile
