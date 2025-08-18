@@ -5,60 +5,9 @@
 </head>
 <body>
     <h1>Upload Audio for Transcription</h1>
-    <form id="uploadForm" method="POST" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data">
         <input type="file" name="file" accept="audio/*" required>
         <button type="submit">Transcribe</button>
     </form>
-    <div id="progress"></div>
-    <script>
-    document.getElementById('uploadForm').onsubmit = async function(e) {
-      e.preventDefault();
-      const form = e.target;
-      const formData = new FormData(form);
-      document.getElementById('progress').innerText = "Uploading...";
-      try {
-        const response = await fetch("/", {
-          method: "POST",
-          body: formData
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          document.getElementById('progress').innerText = data.error || "Upload failed.";
-          return;
-        }
-        document.getElementById('progress').innerText = "Job submitted. Checking status...";
-        pollStatus(data.status_url, data.download_url);
-      } catch (err) {
-        document.getElementById('progress').innerText = "An error occurred: " + err;
-      }
-    };
-
-    async function pollStatus(statusUrl, downloadUrl) {
-      let interval = 2000;
-      let maxTries = 120; // 4 minutes
-      let tries = 0;
-      while (tries < maxTries) {
-        tries++;
-        try {
-          const response = await fetch(statusUrl);
-          const data = await response.json();
-          if (data.status === "done" || data.status === "completed") {
-            document.getElementById('progress').innerHTML = 
-              "Transcription complete! <a href='" + (data.download_url || downloadUrl) + "'>Download result</a>";
-            return;
-          }
-          if (data.status === "failed") {
-            document.getElementById('progress').innerText = "Transcription failed: " + (data.error || "");
-            return;
-          }
-          document.getElementById('progress').innerText = "Status: " + (data.status || "processing") + "...";
-        } catch (err) {
-          document.getElementById('progress').innerText = "Error checking status: " + err;
-        }
-        await new Promise(res => setTimeout(res, interval));
-      }
-      document.getElementById('progress').innerText = "Timed out waiting for transcription.";
-    }
-    </script>
 </body>
 </html>

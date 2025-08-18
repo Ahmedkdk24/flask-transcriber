@@ -1,45 +1,29 @@
+# services/kaggle_client.py
 import os
 import requests
 
-# Kaggle tunnel URL (set in your environment)
-KAGGLE_URL = os.environ.get("KAGGLE_NGROK_URL")
+KAGGLE_SERVER = os.environ.get("KAGGLE_SERVER_URL", "http://127.0.0.1:5000")
 
-# Path to static folder (relative to your project root)
-STATIC_FOLDER = os.path.join(os.getcwd(), "static")
-
-os.makedirs(STATIC_FOLDER, exist_ok=True)
-
-def send_to_kaggle(filepath, language="en"):
-    if not KAGGLE_URL:
-        return {"error": "KAGGLE_NGROK_URL not set"}
-
+def send_to_kaggle(filepath):
     try:
-        with open(filepath, "rb") as infile:
-            r = requests.post(
-                f"{KAGGLE_URL}/transcribe",
-                files={"file": infile},
-                data={"language": language},
-                timeout=1200,
-                verify=False
-            )
+        with open(filepath, "rb") as f:
+            res = requests.post(f"{KAGGLE_SERVER}/transcribe", files={"file": f})
 
-        if r.status_code != 200:
-            return {"error": f"Kaggle server error: {r.text}"}
+        if res.status_code != 200:
+            return {"error": f"Kaggle server error {res.status_code}: {res.text}"}
 
-        # Kaggle responds with a transcript.txt file (plain text)
-        transcript_text = r.content.decode("utf-8", errors="ignore")
+        data = res.json()
 
-        # Save the file into /static/ so Flask can serve it
-        output_filename = "transcript.txt"
-        output_path = os.path.join(STATIC_FOLDER, output_filename)
+        # Save transcript to static/transcript.txt (local side)
+        if "text" in data:
+            static_dir = os.path.join(os.getcwd(), "static")
+            os.makedirs(static_dir, exist_ok=True)
+            out_path = os.path.join(static_dir, "transcript.txt")
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(data["text"])
+            data["local_download"] = "/static/transcript.txt"
 
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(transcript_text)
-
-        return {
-            "text": transcript_text,
-            "download_filename": output_filename
-        }
+        return data
 
     except requests.RequestException as e:
         print(f"❌ Error contacting Kaggle server: {e}")

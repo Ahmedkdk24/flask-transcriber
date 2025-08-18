@@ -50,11 +50,19 @@ def index():
                 download_url=None
             )
         else:
+            kaggle_server_url = os.environ.get("KAGGLE_SERVER_URL", "")
+            download_url = result.get("download_url")
+            if download_url and kaggle_server_url:
+                # Ensure no double slash
+                if download_url.startswith("/"):
+                    download_url = kaggle_server_url.rstrip("/") + download_url
+                else:
+                    download_url = kaggle_server_url.rstrip("/") + "/" + download_url
             return render_template(
                 "result.html",
                 transcript=result.get("text", ""),
                 error=None,
-                download_filename=result.get("download_filename")
+                download_url=download_url
             )
 
     return render_template("index.html")

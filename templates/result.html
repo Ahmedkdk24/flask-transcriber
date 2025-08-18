@@ -9,9 +9,8 @@
   {% else %}
     <h2>Transcript</h2>
     <textarea rows="20" cols="80" readonly>{{ transcript }}</textarea><br><br>
-    {% if download_filename %}
-      <a href="{{ url_for('static', filename=download_filename) }}" download="transcript.txt">
-        Download transcript.txt
+    {% if download_url %}
+      <a href="{{ download_url }}" download="transcript.txt">Download transcript.txt</a>
       </a>
     {% endif %}
   {% endif %}
