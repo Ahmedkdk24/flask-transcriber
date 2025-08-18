@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+  <title>Transcription Result</title>
+</head>
+<body>
+  {% if error %}
+    <h2 style="color:red;">Error: {{ error }}</h2>
+  {% else %}
+    <h2>Transcript</h2>
+    <textarea rows="20" cols="80" readonly>{{ transcript }}</textarea><br><br>
+    {% if download_filename %}
+      <a href="{{ url_for('static', filename=download_filename) }}" download="transcript.txt">
+        Download transcript.txt
+      </a>
+    {% endif %}
+  {% endif %}
+
+  <br><br>
+  <a href="{{ url_for('index') }}">Upload another file</a>
+</body>
+</html>
